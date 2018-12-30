@@ -1,2 +1,6 @@
 [submodule "Carthage/Checkouts/RNCryptor"]
 	url = https://github.com/RNCryptor/RNCryptor.git
+	path = Carthage/Checkouts/RNCryptor
+[submodule "Carthage/Checkouts/SAMKeychain"]
+	path = Carthage/Checkouts/SAMKeychain
+	url = https://github.com/soffes/SAMKeychain.git
