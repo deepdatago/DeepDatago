@@ -464,6 +464,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.deepdatago.DeepDatago;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -495,6 +499,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.deepdatago.DeepDatago;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
