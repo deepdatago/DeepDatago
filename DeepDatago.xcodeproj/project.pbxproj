@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07BE27E521E45F2E00E20F26 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 07BE27E421E45F2E00E20F26 /* Info.plist */; };
 		07C2982721D8350B00C2E3B6 /* DeepDatago.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07C2981D21D8350B00C2E3B6 /* DeepDatago.framework */; };
 		07C2982E21D8350B00C2E3B6 /* DeepDatago.h in Headers */ = {isa = PBXBuildFile; fileRef = 07C2982021D8350B00C2E3B6 /* DeepDatago.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		07C2984421D8389200C2E3B6 /* Geth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07C2983921D8389200C2E3B6 /* Geth.framework */; };
 		07C2984621D8389200C2E3B6 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 07C2983C21D8389200C2E3B6 /* Info.plist */; };
 		07C2984721D8389200C2E3B6 /* DeepDatago.podspec in Resources */ = {isa = PBXBuildFile; fileRef = 07C2983D21D8389200C2E3B6 /* DeepDatago.podspec */; };
 		07C2984821D8389200C2E3B6 /* DeepDatago.h in Headers */ = {isa = PBXBuildFile; fileRef = 07C2983F21D8389200C2E3B6 /* DeepDatago.h */; };
-		07C2984921D8389200C2E3B6 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 07C2984021D8389200C2E3B6 /* Info.plist */; };
 		07C2984B21D83E1A00C2E3B6 /* DeepDatagoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C2983B21D8389200C2E3B6 /* DeepDatagoTests.swift */; };
 		07C2984F21D83EE100C2E3B6 /* DeepDatagoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C2984E21D83EE100C2E3B6 /* DeepDatagoManager.swift */; };
 		07C2985321D83EF100C2E3B6 /* CryptoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C2985021D83EF000C2E3B6 /* CryptoManager.swift */; };
@@ -32,9 +32,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		07BE27E421E45F2E00E20F26 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		07C2981D21D8350B00C2E3B6 /* DeepDatago.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DeepDatago.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		07C2982021D8350B00C2E3B6 /* DeepDatago.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DeepDatago.h; sourceTree = "<group>"; };
-		07C2982121D8350B00C2E3B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		07C2982621D8350B00C2E3B6 /* DeepDatagoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DeepDatagoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		07C2982B21D8350B00C2E3B6 /* DeepDatagoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepDatagoTests.swift; sourceTree = "<group>"; };
 		07C2982D21D8350B00C2E3B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -43,7 +43,6 @@
 		07C2983C21D8389200C2E3B6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		07C2983D21D8389200C2E3B6 /* DeepDatago.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DeepDatago.podspec; sourceTree = "<group>"; };
 		07C2983F21D8389200C2E3B6 /* DeepDatago.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DeepDatago.h; sourceTree = "<group>"; };
-		07C2984021D8389200C2E3B6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		07C2984121D8389200C2E3B6 /* DeepDatago.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = DeepDatago.xcodeproj; sourceTree = "<group>"; };
 		07C2984E21D83EE100C2E3B6 /* DeepDatagoManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DeepDatagoManager.swift; path = DeepDatago/DeepDatagoManager/DeepDatagoManager.swift; sourceTree = SOURCE_ROOT; };
 		07C2985021D83EF000C2E3B6 /* CryptoManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CryptoManager.swift; path = DeepDatago/CryptoManager/CryptoManager.swift; sourceTree = SOURCE_ROOT; };
@@ -96,7 +95,6 @@
 				07C2984D21D83EA000C2E3B6 /* DeepDatagoManager */,
 				07C2984C21D83E9200C2E3B6 /* CryptoManager */,
 				07C2982021D8350B00C2E3B6 /* DeepDatago.h */,
-				07C2982121D8350B00C2E3B6 /* Info.plist */,
 			);
 			path = DeepDatago;
 			sourceTree = "<group>";
@@ -113,6 +111,7 @@
 		07C2983721D8389200C2E3B6 /* DeepDatago */ = {
 			isa = PBXGroup;
 			children = (
+				07BE27E421E45F2E00E20F26 /* Info.plist */,
 				07C2983821D8389200C2E3B6 /* workaround */,
 				07C2983A21D8389200C2E3B6 /* DeepDatagoTests */,
 				07C2983D21D8389200C2E3B6 /* DeepDatago.podspec */,
@@ -143,7 +142,6 @@
 			isa = PBXGroup;
 			children = (
 				07C2983F21D8389200C2E3B6 /* DeepDatago.h */,
-				07C2984021D8389200C2E3B6 /* Info.plist */,
 			);
 			path = DeepDatago;
 			sourceTree = "<group>";
@@ -274,7 +272,7 @@
 			files = (
 				07C2984721D8389200C2E3B6 /* DeepDatago.podspec in Resources */,
 				07C2984621D8389200C2E3B6 /* Info.plist in Resources */,
-				07C2984921D8389200C2E3B6 /* Info.plist in Resources */,
+				07BE27E521E45F2E00E20F26 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -456,7 +454,7 @@
 					"$(PROJECT_DIR)/workaround",
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
-				INFOPLIST_FILE = DeepDatago/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -492,7 +490,7 @@
 					"$(PROJECT_DIR)/workaround",
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
-				INFOPLIST_FILE = DeepDatago/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
