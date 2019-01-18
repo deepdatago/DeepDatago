@@ -19,6 +19,7 @@ let _keychainGethAccountPassword = "account.GethPassword"
 
 let BASEURL = "https://dev.deepdatago.com/service/" // accounts/get_public_key/<account_id>/
 let ACCOUNT_GET_PUBLIC_KEY_API = "accounts/get_public_key/"
+let ACCOUNT_REGISTER_API = "accounts/register/"
 let REQUEST_FRIEND_API = "request/friend/"
 let REQUEST_SUMMARY_API = "request/summary/?"
 let REQUEST_APPROVED_DETAILS_API = "request/approved_details/?"
@@ -62,7 +63,7 @@ let TAG_ACTION_TYPE = "action_type"
         return passwordForAllFriends as NSString;
     }
 
-    @objc public func getRegisterRequest(password:NSString, nickName:NSString) -> NSString! {
+    @objc public func registerRequest(password:NSString, nickName:NSString) -> NSData! {
         if (password.length == 0) {
             return nil;
         }
@@ -90,14 +91,15 @@ let TAG_ACTION_TYPE = "action_type"
         let success = SAMKeychain.setPassword(password as String, forService:_keychainService, account: _keychainGethAccountPassword);
         
         if (!success) {
-            return "";
+            return nil;
         }
 
         let registerRequestStr = createRegisterRequest(ks:keyStore, account:newAccount!, nickName:nickName as String, publicKeyPEM:publicKeyPEM as String)!
         // print("register request: \((registerRequestStr))")
+        
+        let data = sendPOSTRequest(urlString:(BASEURL + ACCOUNT_REGISTER_API), input: registerRequestStr);
 
-
-        return registerRequestStr as NSString;
+        return data! as NSData;
     }
 
     private func getAccount() -> GethAccount! {
