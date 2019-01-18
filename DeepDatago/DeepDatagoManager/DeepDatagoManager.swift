@@ -17,7 +17,8 @@ let _keychainAllFriendsKeyPrefix = "account.AllFriendsKey_" // for friends
 let _keychainDecryptedNickNamePrefix = "account.NickNameOf_" // for friend's nick name
 let _keychainGethAccountPassword = "account.GethPassword"
 
-let BASEURL = "https://dev.deepdatago.com/service/" // accounts/get_public_key/<account_id>/
+let BASEDOMAIN="dev.deepdatago.com"
+let BASEURL = "https://"+BASEDOMAIN+"/service/" // accounts/get_public_key/<account_id>/
 let ACCOUNT_GET_PUBLIC_KEY_API = "accounts/get_public_key/"
 let ACCOUNT_REGISTER_API = "accounts/register/"
 let REQUEST_FRIEND_API = "request/friend/"
@@ -56,6 +57,10 @@ let TAG_ACTION_TYPE = "action_type"
     
     @objc public static func sharedInstance() -> DeepDatagoManager {
         return DeepDatagoManager.shared
+    }
+
+    @objc public func getDomain() -> NSString! {
+        return BASEDOMAIN as NSString;
     }
 
     @objc public func getPasswordForAllFriends() -> NSString! {
