@@ -22,8 +22,18 @@ class DeepDatagoTests: XCTestCase {
     }
     
     func testExample() {
-        // This is an example of a functional test case.
+        // This is an example of a system integration test case.  The request will be sent to the real dev server
         // Use XCTAssert and related functions to verify your tests produce the correct results.
+
+        // SecKeyGeneratePair doesn't work well on XCTest as a known bug (URL cannot be found)
+        
+        var testDeep = DeepDatagoManager.sharedInstance()
+        let groupAddress = "abc" as NSString
+        // let groupKeyFlag = testDeep.getGroupKeyFromServer(groupAddress: groupAddress)
+        let groupKey = testDeep.getGroupKey(group: groupAddress)
+        let groupKey2 = testDeep.getGroupKey(group: groupAddress)
+        var a = 3
+        a = 4
     }
     
     func testPerformanceExample() {

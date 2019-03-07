@@ -16,6 +16,7 @@ let _keychainFriendPrefix = "account.FriendSymmetricKey_" // for friends
 let _keychainAllFriendsKeyPrefix = "account.AllFriendsKey_" // for friends
 let _keychainDecryptedNickNamePrefix = "account.NickNameOf_" // for friend's nick name
 let _keychainGethAccountPassword = "account.GethPassword"
+let _keychainGroupKeyPrefix = "group.SymmetricKey_"
 
 let BASEDOMAIN="dev.deepdatago.com"
 let BASEURL = "https://"+BASEDOMAIN+"/service/" // accounts/get_public_key/<account_id>/
@@ -23,6 +24,7 @@ let ACCOUNT_GET_PUBLIC_KEY_API = "accounts/get_public_key/"
 let ACCOUNT_REGISTER_API = "accounts/register/"
 let REQUEST_FRIEND_API = "request/friend/"
 let REQUEST_SUMMARY_API = "request/summary/?"
+let REQUEST_INVITE_API = "request/invite/?"
 let REQUEST_APPROVED_DETAILS_API = "request/approved_details/?"
 
 let DUMMY_ACCOUNT = "0x0000000000000000000000000000000000000000"
@@ -32,6 +34,7 @@ let TAG_ALL_FRIENDS_SYMMETRIC_KEY = "all_friends_symmetric_key"
 let TAG_TRANSACTION = "transaction"
 let TAG_SENDER_ADDRESS = "sender_address"
 let TAG_TO_ADDRESS = "to_address"
+let TAG_GROUP_ADDRESS = "group_address"
 let TAG_FROM_ADDRESS = "from_address"
 let TAG_TIME_STAMP = "time_stamp"
 let TAG_B64_ENCODED_SIGNATURE = "b64encoded_signature"
@@ -39,6 +42,7 @@ let TAG_APPROVED_REQUEST = "approved_request"
 let TAG_FRIEND_REQUEST = "friend_request"
 let TAG_REQUEST = "request"
 let TAG_ACTION_TYPE = "action_type"
+let TAG_GROUP_KEY = "group_key"
 
 @objc public enum RequestActionType: Int {
     case friendRequest = 0
@@ -494,4 +498,77 @@ let TAG_ACTION_TYPE = "action_type"
 
         return processSummary(summary: responseString)
     }
+    
+    @objc public func getGroupKeyFromServer(groupAddress: NSString) -> Bool {
+        let account = getAccount()
+        var requestStr = "";
+        requestStr += TAG_TO_ADDRESS + "=" + (account?.getAddress().getHex())!;
+
+        requestStr += "&" + TAG_GROUP_ADDRESS + "=" + (groupAddress as String);
+
+        let timeInterval = NSDate().timeIntervalSince1970
+        let timeStr = String(format: "%.0f", timeInterval)
+        requestStr += "&" + TAG_TIME_STAMP + "=" + timeStr
+
+        let sign = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
+        requestStr += "&" + TAG_B64_ENCODED_SIGNATURE + "=" + (sign! as String)
+        
+        let data = sendGETRequest(urlString:(BASEURL + REQUEST_INVITE_API + requestStr + "/"))
+        if (data == nil) {
+            return false
+        }
+
+        /*
+        // for unit testing
+        let dataStr = "{\"group_key\": \"symmetric_key_encrypted_group_key\", \"msg\": \"Success\"}";
+        let data = dataStr.data(using: .utf8)
+        */
+        do {
+            let jsonObject = try JSONSerialization.jsonObject(with: data!, options : .allowFragments) as? Dictionary<String,Any>
+            let encryptedGroupKey = (jsonObject![TAG_GROUP_KEY])!
+            let allFriendKey = getPasswordForAllFriends()
+            let groupKey = CryptoManager.decryptStringWithSymmetricKey(key: allFriendKey!, base64Input: encryptedGroupKey as! NSString)
+            
+            return setGroupKey(group: groupAddress as String, aesKey: groupKey! as String)
+        } catch let error as NSError{
+            // print (error.localizedDescription)
+            // return ""
+        }
+        return false
+    }
+
+    @objc public func getGroupKey(group: NSString) -> NSString! {
+        let newGroup = getBlockChainAddress(address: group as String)
+        let keyChainGroupAddress = _keychainGroupKeyPrefix + newGroup
+        var aesKey = SAMKeychain.password(forService:_keychainService, account:keyChainGroupAddress);
+        if (aesKey == nil) {
+            if (aesKey == nil) {
+                aesKey = UUID().uuidString.replacingOccurrences(of: "-", with: "");
+                _ = setGroupKey(group: newGroup as String, aesKey: aesKey!)
+                return aesKey! as NSString
+            }
+
+            return "";
+        }
+        return aesKey! as NSString
+    }
+    
+    private func setGroupKey(group: String, aesKey: String) -> Bool {
+        // print("setGroupKey: Enter");
+        // print("setGroupKey: group: \(group), aesKey: \(aesKey)");
+        if (group.count == 0 || aesKey.count == 0) {
+            return false
+        }
+
+        let keyChainGroupAddress = _keychainGroupKeyPrefix + group
+        // var nsErr: NSErrorPointer
+        let success = SAMKeychain.setPassword(aesKey, forService:_keychainService, account: keyChainGroupAddress) // error:nsErr);
+        return success;
+    }
+    
+    private func getBlockChainAddress(address: String) -> String {
+        let strArray = address.components(separatedBy: "@")
+        return strArray[0]
+    }
+
 }
