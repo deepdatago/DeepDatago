@@ -25,6 +25,7 @@ let ACCOUNT_REGISTER_API = "accounts/register/"
 let REQUEST_FRIEND_API = "request/friend/"
 let REQUEST_SUMMARY_API = "request/summary/?"
 let REQUEST_INVITE_API = "request/invite/?"
+let REQUEST_GROUP_INVITE_API = "request/group_invite/"
 let REQUEST_APPROVED_DETAILS_API = "request/approved_details/?"
 
 let DUMMY_ACCOUNT = "0x0000000000000000000000000000000000000000"
@@ -43,6 +44,7 @@ let TAG_FRIEND_REQUEST = "friend_request"
 let TAG_REQUEST = "request"
 let TAG_ACTION_TYPE = "action_type"
 let TAG_GROUP_KEY = "group_key"
+let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
 
 @objc public enum RequestActionType: Int {
     case friendRequest = 0
@@ -151,6 +153,8 @@ let TAG_GROUP_KEY = "group_key"
         do {
             var response2: URLResponse?
             let data = try NSURLConnection.sendSynchronousRequest(request, returning:&response2)
+            let responseString = String(data: data, encoding: .utf8)
+            print("sendPOSTRequest: \(urlString)\ninput: \(input)\nresponse: \(String(describing: responseString))")
             if ((response2! as! HTTPURLResponse).statusCode != 200) {
                 return nil
             }
@@ -569,6 +573,50 @@ let TAG_GROUP_KEY = "group_key"
     private func getBlockChainAddress(address: String) -> String {
         let strArray = address.components(separatedBy: "@")
         return strArray[0]
+    }
+
+    @objc public func createGroupChat(groupAddress: NSString, inviteeArray:NSArray) -> Bool {
+        let timeInterval = NSDate().timeIntervalSince1970
+        let timeStr = String(format: "%.0f", timeInterval)
+        // let signedStr = "abc"
+        let signedStr = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: false)
+        
+        let gethAccount = getAccount()
+
+        let groupInviteRequest: NSMutableDictionary = NSMutableDictionary()
+        groupInviteRequest.setValue(gethAccount?.getAddress().getHex().lowercased(), forKey:TAG_FROM_ADDRESS)
+        groupInviteRequest.setValue(getBlockChainAddress(address: groupAddress as String), forKey:TAG_GROUP_ADDRESS)
+        groupInviteRequest.setValue(timeStr, forKey:TAG_TIME_STAMP)
+        groupInviteRequest.setValue(signedStr, forKey:TAG_B64_ENCODED_SIGNATURE)
+
+        let groupInviteesDict: NSMutableDictionary = NSMutableDictionary()
+        let groupKey = getGroupKey(group: groupAddress)
+        for invitee in (inviteeArray as! [NSString]) {
+            // groupInviteesDict
+            let inviteeAddress = getBlockChainAddress(address: invitee as String)
+            let sharedKey = getAllFriendsKey(account: inviteeAddress as NSString) as NSString
+            if (sharedKey.length == 0) {
+                continue
+            }
+            let encryptedGroupKey = CryptoManager.encryptStringWithSymmetricKey(key: sharedKey, input: groupKey!)
+            groupInviteesDict.setValue(encryptedGroupKey, forKey: inviteeAddress)
+        }
+        let jsonString = dictionaryToString(dict: groupInviteesDict)!
+        groupInviteRequest.setValue(jsonString, forKey:TAG_GROUP_INVITEE_LIST)
+        
+        let requestString = dictionaryToString(dict: groupInviteRequest)!
+        let data = sendPOSTRequest(urlString:(BASEURL + REQUEST_GROUP_INVITE_API), input: requestString)
+        if (data != nil) {
+            return true
+        }
+
+        return false
+    }
+    
+    private func dictionaryToString(dict: NSMutableDictionary) -> String? {
+        let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: [])
+        let jsonString = String(data: jsonData!, encoding: .utf8)
+        return jsonString
     }
 
 }

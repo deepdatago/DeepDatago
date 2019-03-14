@@ -32,6 +32,10 @@ class DeepDatagoTests: XCTestCase {
         // let groupKeyFlag = testDeep.getGroupKeyFromServer(groupAddress: groupAddress)
         let groupKey = testDeep.getGroupKey(group: groupAddress)
         let groupKey2 = testDeep.getGroupKey(group: groupAddress)
+        var inviteeArray : NSMutableArray = []
+        inviteeArray.add("invitee1@com")
+        inviteeArray.add("invitee2@com")
+        _ = testDeep.createGroupChat(groupAddress: "abc", inviteeArray: inviteeArray);
         var a = 3
         a = 4
     }
