@@ -17,7 +17,13 @@ let kPublicPrivateKeySize = 4096
 
 
 @objc public class CryptoManager: NSObject {
-    @objc public static func decryptStringWithSymmetricKey(key:NSString, base64Input:NSString) -> NSString! {
+    static let shared = CryptoManager()
+
+    @objc public static func sharedInstance() -> CryptoManager {
+        return CryptoManager.shared
+    }
+
+    @objc public func decryptStringWithSymmetricKey(key:NSString, base64Input:NSString) -> NSString! {
         let inputStr = base64Input as String
         // NSLog("encrypted string: \((inputStr))")
         guard let inputData = Data(base64Encoded: inputStr) else {return ""}
@@ -28,24 +34,24 @@ let kPublicPrivateKeySize = 4096
         return returnStr as NSString
     }
     
-    @objc public static func encryptStringWithSymmetricKey(key:NSString, input:NSString) -> NSString! {
+    @objc public func encryptStringWithSymmetricKey(key:NSString, input:NSString) -> NSString! {
         let inputData = (input as String).data(using: .utf8)!
         let keyData = (key as String).data(using: .utf8)!
         return aesCBCEncrypt(data:inputData, keyData:keyData)!.base64EncodedString() as NSString
     }
 
-    @objc public static func decryptDataWithSymmetricKey(key:NSString, inputData:Data) -> Data! {
+    @objc public func decryptDataWithSymmetricKey(key:NSString, inputData:Data) -> Data! {
         let keyData = (key as String).data(using: .utf8)!
         
         return aesCBCDecrypt(data:inputData, keyData:keyData)!
     }
     
-    @objc public static func encryptDataWithSymmetricKey(key:NSString, inputData:Data) -> Data! {
+    @objc public func encryptDataWithSymmetricKey(key:NSString, inputData:Data) -> Data! {
         let keyData = (key as String).data(using: .utf8)!
         return aesCBCEncrypt(data:inputData, keyData:keyData)!
     }
 
-    private static func aesCBCDecrypt(data:Data, keyData:Data) -> Data? {
+    private func aesCBCDecrypt(data:Data, keyData:Data) -> Data? {
         let keyLength = keyData.count
         let validKeyLengths = [kCCKeySizeAES128, kCCKeySizeAES192, kCCKeySizeAES256]
         if (validKeyLengths.contains(keyLength) == false) {
@@ -84,7 +90,7 @@ let kPublicPrivateKeySize = 4096
         return clearData;
     }
     
-    private static func aesCBCEncrypt(data:Data, keyData:Data) -> Data? {
+    private func aesCBCEncrypt(data:Data, keyData:Data) -> Data? {
         let keyLength = keyData.count
         let validKeyLengths = [kCCKeySizeAES128, kCCKeySizeAES192, kCCKeySizeAES256]
         if (validKeyLengths.contains(keyLength) == false) {
@@ -131,7 +137,8 @@ let kPublicPrivateKeySize = 4096
         return cryptData;
     }
 
-    @objc public static func getKeyByKeyTag(keyTagName:NSString) -> NSString {
+    // @objc public static func getKeyByKeyTag(keyTagName:NSString) -> NSString {
+    private func getKeyByKeyTag(keyTagName:NSString) -> NSString {
         // let keyValue = RSAUtils.getRSAKeyFromKeychain(keyTagName as String);
         
         // keyValue.
@@ -156,28 +163,20 @@ let kPublicPrivateKeySize = 4096
         let cryptoImportExportManager = CryptoExportImportManager()
         return cryptoImportExportManager.exportRSAPublicKeyToPEM(data, keyType: kSecAttrKeyTypeRSA as String, keySize: kPublicPrivateKeySize) as NSString
     }
-    
-    private static func formatPrivateKeyPEM(key:String) -> String! {
-        /*
-        if (keyType == _typePublic)
-        {
-            var finalPubKeyStr = "-----BEGIN RSA PUBLIC KEY-----\n"
-            finalPubKeyStr = finalPubKeyStr + key
-            finalPubKeyStr = finalPubKeyStr + "\n-----END RSA PUBLIC KEY-----"
-            return finalPubKeyStr;
-        }
-        */
+    /*
+    private func formatPrivateKeyPEM(key:String) -> String! {
         var finalPrivateKeyStr = "-----BEGIN RSA PRIVATE KEY-----\n"
         finalPrivateKeyStr = finalPrivateKeyStr + key
         finalPrivateKeyStr = finalPrivateKeyStr + "\n-----END RSA PRIVATE KEY-----"
         return finalPrivateKeyStr;
     }
-
-    @objc public static func getPublicKeyString() -> NSString {
-        return CryptoManager.getKeyByKeyTag(keyTagName: PUBLIC_KEY_TAG as NSString)
+    */
+    
+    @objc public func getPublicKeyString() -> NSString {
+        return getKeyByKeyTag(keyTagName: PUBLIC_KEY_TAG as NSString)
     }
 
-    @objc public static func generateKeyPairTags() -> Bool {
+    @objc public func generateKeyPair() -> Bool {
         if (getKeyByKeyTag(keyTagName: PUBLIC_KEY_TAG as NSString).length > 0)
         {
             return true;
@@ -249,7 +248,7 @@ let kPublicPrivateKeySize = 4096
         return true;
     }
 
-    @objc public static func encryptStrWithPublicKey(publicKey:NSString, input:NSString) -> NSString! {
+    @objc public func encryptStrWithPublicKey(publicKey:NSString, input:NSString) -> NSString! {
         if (input.length > 380)
         {
             // public key can only encrypt to certain length of string, less than 512 characters?
@@ -261,7 +260,7 @@ let kPublicPrivateKeySize = 4096
         return ((publicKeyEncryptedData?.base64EncodedString())! as NSString)
     }
 
-    @objc public static func encryptStrWithPublicKeyTag(keyTag:NSString, input:NSString) -> NSString! {
+    @objc public func encryptStrWithPublicKeyTag(keyTag:NSString, input:NSString) -> NSString! {
         if (input.length > 380)
         {
             // public key can only encrypt to certain length of string, less than 512 characters?
@@ -276,7 +275,7 @@ let kPublicPrivateKeySize = 4096
         return ((publicKeyEncryptedData?.base64EncodedString())! as NSString)
     }
 
-    @objc public static func decryptStrWithPrivateKeyTag(keyTag:NSString, inputBase64Encoded:NSString) -> NSString! {
+    @objc public func decryptStrWithPrivateKeyTag(keyTag:NSString, inputBase64Encoded:NSString) -> NSString! {
         var keyTagToUse = keyTag as String
         if keyTagToUse.count == 0 {
             keyTagToUse = PRIVATE_KEY_TAG
@@ -293,7 +292,7 @@ let kPublicPrivateKeySize = 4096
         return backToString! as NSString
     }
 
-    private static func MD5HashToBase64(string: String) -> String! {
+    private func MD5HashToBase64(string: String) -> String! {
         let messageData = string.data(using:.utf8)!
         var digestData = Data(count: Int(CC_MD5_DIGEST_LENGTH))
         
@@ -305,7 +304,7 @@ let kPublicPrivateKeySize = 4096
         return digestData.base64EncodedString()
     }
 
-    private static func getPrivateKeyRef() -> SecKey? {
+    private func getPrivateKeyRef() -> SecKey? {
         var keyRef: AnyObject?
         let query: Dictionary<String, AnyObject> = [
             String(kSecAttrKeyType): kSecAttrKeyTypeRSA,
@@ -329,7 +328,7 @@ let kPublicPrivateKeySize = 4096
         return key
     }
     
-    private static func signString(input: String, privateKeyTag: String, urlEncode: Bool) -> String {
+    private func signString(input: String, privateKeyTag: String, urlEncode: Bool) -> String {
         let inputData = (input as String).data(using: String.Encoding.utf8)!
 
         let key = getPrivateKeyRef()
@@ -369,7 +368,7 @@ let kPublicPrivateKeySize = 4096
         return ""
     }
 
-    @objc public static func signStrWithPrivateKey(input: NSString, urlEncode: Bool = false) -> NSString!
+    @objc public func signStrWithPrivateKey(input: NSString, urlEncode: Bool = false) -> NSString!
     {
         return signString(input: input as String, privateKeyTag: PRIVATE_KEY_TAG, urlEncode: urlEncode) as NSString
     }

@@ -33,6 +33,7 @@ let DUMMY_ACCOUNT = "0x0000000000000000000000000000000000000000"
 let TAG_FRIEND_REQUEST_SYMMETRIC_KEY = "friend_request_symmetric_key"
 let TAG_ALL_FRIENDS_SYMMETRIC_KEY = "all_friends_symmetric_key"
 let TAG_TRANSACTION = "transaction"
+let TAG_NAME = "name"
 let TAG_SENDER_ADDRESS = "sender_address"
 let TAG_TO_ADDRESS = "to_address"
 let TAG_GROUP_ADDRESS = "group_address"
@@ -45,6 +46,10 @@ let TAG_REQUEST = "request"
 let TAG_ACTION_TYPE = "action_type"
 let TAG_GROUP_KEY = "group_key"
 let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
+let TAG_XMPP_ACCOUNT_NUMBER = "xmpp_account_number"
+let TAG_XMPP_ACCOUNT_PASSWORD = "xmpp_account_password"
+let TAG_KEYS = "keys"
+
 
 @objc public enum RequestActionType: Int {
     case friendRequest = 0
@@ -69,9 +74,17 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         return BASEDOMAIN as NSString;
     }
 
-    @objc public func getPasswordForAllFriends() -> NSString! {
-        let passwordForAllFriends = SAMKeychain.password(forService:_keychainService, account:_keychainAccountForAllFriends)!;
-        return passwordForAllFriends as NSString;
+    @objc public func getAccountNumberTag() -> NSString! {
+        return TAG_XMPP_ACCOUNT_NUMBER as NSString;
+    }
+
+    @objc public func getAccountPasswordTag() -> NSString! {
+        return TAG_XMPP_ACCOUNT_PASSWORD as NSString;
+    }
+
+    @objc public func getSharedKeyForAllFriends() -> NSString! {
+        let allFriendsKey = SAMKeychain.password(forService:_keychainService, account:_keychainAccountForAllFriends)!;
+        return allFriendsKey as NSString;
     }
 
     @objc public func registerRequest(password:NSString, nickName:NSString) -> NSData! {
@@ -83,29 +96,21 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         // var newAccount: GethAccount
         var newAccount = getAccount()
         if (newAccount == nil) {
-            newAccount = createUser(ks:keyStore, password:password as String)
+            newAccount = createAccount(ks:keyStore, password:password as String)
         }
         
         var publicKeyPEM:NSString = ""
-
-        if (CryptoManager.generateKeyPairTags())
+        let cryptoManager = CryptoManager.sharedInstance()
+        if (cryptoManager.generateKeyPair())
         {
-            publicKeyPEM = CryptoManager.getPublicKeyString()
+            publicKeyPEM = cryptoManager.getPublicKeyString()
             // print(publicKeyPEM);
         }
         else {
             return nil;
         }
-        // try! keyStore.unlock(newAccount, passphrase: password as String)
-        // [CRYPTO_TALK] TODO - can we just unlock account once without saving account password for
-        // future transaction signing?
-        let success = SAMKeychain.setPassword(password as String, forService:_keychainService, account: _keychainGethAccountPassword);
-        
-        if (!success) {
-            return nil;
-        }
 
-        let registerRequestStr = createRegisterRequest(ks:keyStore, account:newAccount!, nickName:nickName as String, publicKeyPEM:publicKeyPEM as String)!
+        let registerRequestStr = createRegisterRequest(ks:keyStore, account:newAccount!, password:password as String, nickName:nickName as String, publicKeyPEM:publicKeyPEM as String)!
         // print("register request: \((registerRequestStr))")
         
         let data = sendPOSTRequest(urlString:(BASEURL + ACCOUNT_REGISTER_API), input: registerRequestStr);
@@ -189,39 +194,38 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         //   "action_type": 0, // or 1 to approve
         //   "to_address": "0x<to_address>",
         //   "from_address": "0x<from_address>"
-        //   "request": "signed transaction string"
-        // }
-        // where "signed transaction string" has input structure:
-        // {
-        //   "friend_request_symmetric_key": "<public_key_encrypted symmetric key>",
-        //        Note: this field is optional if to approve a friend request, as this is already exchanged
-        //   "all_friends_symmetric_key": "<public_key_encrypted symmetric key>",
-        //        Note: this public key is always using the one for to_address' public key
+        //   "keys": "
+        //      {
+        //          "friend_request_symmetric_key": "<public_key_encrypted symmetric key>",
+        //              Note: this field is optional if to approve a friend request, as this is already exchanged
+        //          "all_friends_symmetric_key": "<public_key_encrypted symmetric key>",
+        //              Note: this public key is always using the one for to_address' public key
+        //      }"
         // }
 
         let publicKey = getPublicKeyRequest(account:(account as String))
-        var requestData: NSMutableDictionary = NSMutableDictionary()
+        let keysNode: NSMutableDictionary = NSMutableDictionary()
         
         // let aesKeyForAllFriends = SAMKeychain.password(forService:_keychainService, account:_keychainAccountForAllFriends);
-        let aesKeyForAllFriends = getPasswordForAllFriends()
-
-        let encryptedKeyForAllFriends = CryptoManager.encryptStrWithPublicKey(publicKey: (publicKey! as NSString), input: (aesKeyForAllFriends! as NSString) )
-        requestData.setValue(encryptedKeyForAllFriends, forKey:TAG_ALL_FRIENDS_SYMMETRIC_KEY)
+        let aesKeyForAllFriends = getSharedKeyForAllFriends()
+        let cryptoManager = CryptoManager.sharedInstance()
+        let encryptedKeyForAllFriends = cryptoManager.encryptStrWithPublicKey(publicKey: (publicKey! as NSString), input: (aesKeyForAllFriends! as NSString) )
+        keysNode.setValue(encryptedKeyForAllFriends, forKey:TAG_ALL_FRIENDS_SYMMETRIC_KEY)
 
         if (requestType == RequestActionType.friendRequest.rawValue)
         {
             let aesKeyForFriend = getSymmetricKey(account: (account as NSString))
-            let encryptedKeyForFriend = CryptoManager.encryptStrWithPublicKey(publicKey: (publicKey! as NSString), input: (aesKeyForFriend as! NSString) )
-            requestData.setValue(encryptedKeyForFriend, forKey:TAG_FRIEND_REQUEST_SYMMETRIC_KEY)
+            let encryptedKeyForFriend = cryptoManager.encryptStrWithPublicKey(publicKey: (publicKey! as NSString), input: (aesKeyForFriend as! NSString) )
+            keysNode.setValue(encryptedKeyForFriend, forKey:TAG_FRIEND_REQUEST_SYMMETRIC_KEY)
         }
         
-        let keysRequestData = try! JSONSerialization.data(withJSONObject: requestData, options: JSONSerialization.WritingOptions())
+        // let keysRequestData = try! JSONSerialization.data(withJSONObject: requestData, options: JSONSerialization.WritingOptions())
         // let keysRequestString = NSString(data: keysRequestData as Data, encoding: String.Encoding.utf8.rawValue) as! String
         // let encrpytedKeyStrData = encryptedKeysStr.data(using: .utf8)!
         let gethAccount = getAccount()
-        let transactionStr = signTransaction(ks: keyStore, account: gethAccount!, data: keysRequestData)
+        // let transactionStr = signTransaction(ks: keyStore, account: gethAccount!, data: keysRequestData)
 
-        var friendRequest: NSMutableDictionary = NSMutableDictionary()
+        let friendRequest: NSMutableDictionary = NSMutableDictionary()
         friendRequest.setValue(requestType, forKey:TAG_ACTION_TYPE)
         if (requestType == RequestActionType.friendRequest.rawValue)
         {
@@ -235,7 +239,17 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
             friendRequest.setValue(gethAccount?.getAddress().getHex().lowercased(), forKey:TAG_TO_ADDRESS)
         }
 
-        friendRequest.setValue(transactionStr, forKey:TAG_REQUEST)
+        let timeInterval = NSDate().timeIntervalSince1970
+        let timeStr = String(format: "%.0f", timeInterval)
+        friendRequest.setValue(timeStr, forKey:TAG_TIME_STAMP)
+
+        let signedTimeStamp = cryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: false)
+        friendRequest.setValue(signedTimeStamp, forKey:TAG_B64_ENCODED_SIGNATURE)
+        
+        let keysNodeData = try! JSONSerialization.data(withJSONObject: keysNode, options: JSONSerialization.WritingOptions()) as NSData
+        let keysNodeString = NSString(data: keysNodeData as Data, encoding: String.Encoding.utf8.rawValue) as! String
+        friendRequest.setValue(keysNodeString, forKey:TAG_KEYS)
+
         let friendRequestData = try! JSONSerialization.data(withJSONObject: friendRequest, options: JSONSerialization.WritingOptions()) as NSData
         let friendRequestDataString = NSString(data: friendRequestData as Data, encoding: String.Encoding.utf8.rawValue) as! String
 
@@ -247,7 +261,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         return ();
     }
     
-    private func signTransaction(ks: GethKeyStore, account:GethAccount, data: Data) -> String {
+    private func signTransaction(ks: GethKeyStore, account:GethAccount, password:String, data: Data) -> String {
         var error: NSError?
         let to    = GethNewAddressFromHex(DUMMY_ACCOUNT, &error)
         var gasLimit: Int64
@@ -256,18 +270,19 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         let chain = GethNewBigInt(1) // Chain identifier of the main net
         
         // Sign a transaction with multiple manually cancelled authorizations
-        let accountPassword = SAMKeychain.password(forService:_keychainService, account:_keychainGethAccountPassword);
-        try! ks.unlock(account, passphrase: accountPassword)
+        // let accountPassword = SAMKeychain.password(forService:_keychainService, account:_keychainGethAccountPassword);
+        try! ks.unlock(account, passphrase: password)
         
         let signed = try! ks.signTx(account, tx: tx, chainID: chain)
         let signedTrans = try! signed.encodeJSON()
+        try! ks.lock(account.getAddress())
         return signedTrans
     }
 
-    private func createRegisterRequest(ks: GethKeyStore, account: GethAccount, nickName: String, publicKeyPEM: String!) -> String! {
+    private func createRegisterRequest(ks: GethKeyStore, account: GethAccount, password:String, nickName: String, publicKeyPEM: String!) -> String! {
         
         let data = publicKeyPEM.data(using: .utf8)!
-        let transactionStr = signTransaction(ks: ks, account: account, data: data)
+        let transactionStr = signTransaction(ks: ks, account: account, password:password, data: data)
         var request: NSMutableDictionary = NSMutableDictionary()
         request.setValue(transactionStr, forKey:TAG_TRANSACTION)
         request.setValue(account.getAddress().getHex(), forKey:TAG_SENDER_ADDRESS)
@@ -282,19 +297,16 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
                 return nil;
             }
         }
-        
-        let encryptedNickName = CryptoManager.encryptStringWithSymmetricKey(key: aesKey as! NSString, input: nickName as NSString)
-        
-        // request.setValue(CryptoManager.encryptStringWithSymmetricKey(key: aesKey! as NSString, input: encryptedNickName!), forKey:"name")
-        request.setValue(encryptedNickName, forKey:"name")
-
+        let cryptoManager = CryptoManager.sharedInstance()
+        let encryptedNickName = cryptoManager.encryptStringWithSymmetricKey(key: aesKey as! NSString, input: nickName as NSString)
+        request.setValue(encryptedNickName, forKey:TAG_NAME)
         
         let jsonData = try! JSONSerialization.data(withJSONObject: request, options: JSONSerialization.WritingOptions()) as NSData
         let jsonString = NSString(data: jsonData as Data, encoding: String.Encoding.utf8.rawValue) as! String
         return jsonString
     }
 
-    private func createUser(ks: GethKeyStore, password: String) -> GethAccount {
+    private func createAccount(ks: GethKeyStore, password: String) -> GethAccount {
         let newAccount = try! ks.newAccount(password)
         return newAccount
     }
@@ -313,7 +325,9 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         let timeInterval = NSDate().timeIntervalSince1970
         let timeStr = String(format: "%.0f", timeInterval)
         requestStr += "&" + TAG_TIME_STAMP + "=" + timeStr
-        let sign = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
+        
+        let cryptoManager = CryptoManager.sharedInstance()
+        let sign = cryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
         // print(sign!);
         requestStr += "&" + TAG_B64_ENCODED_SIGNATURE + "=" + (sign! as String)
 
@@ -334,7 +348,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
                     for item2 in json2! {
                         if (item2.key == TAG_ALL_FRIENDS_SYMMETRIC_KEY) {
                             var encryptedStr = (item2.value as! String)
-                            let decryptedStr = CryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: encryptedStr as NSString)!
+                            let decryptedStr = cryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: encryptedStr as NSString)!
                             // print(decryptedStr as String)
                             // save all_friends_symmetric_key
                             setAllFriendsKey(account: (toAddress as String), aesKey: (decryptedStr as String))
@@ -356,7 +370,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         let gethAccount = getAccount()
         let selfAccount = gethAccount?.getAddress().getHex().replacingOccurrences(of: "0x", with: "")
         if (selfAccount?.lowercased() == (account as String).lowercased()) {
-            return getPasswordForAllFriends()
+            return getSharedKeyForAllFriends()
         }
         
         let keyChainFriendAccount = _keychainAllFriendsKeyPrefix + (account as String)
@@ -420,6 +434,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
 
     private func processSummary(summary: String) -> Bool {
         let jsonData = summary.data(using: .utf8)!
+        let cryptoManager = CryptoManager.sharedInstance()
         do {
             var requestObj = try JSONSerialization.jsonObject(with: jsonData, options : .allowFragments) as? Dictionary<String,Any>
             let friendRequestStr = (requestObj![TAG_FRIEND_REQUEST] as! NSArray)
@@ -431,7 +446,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
             // requestObj = try JSONSerialization.jsonObject(with: friendRequestData, options : .allowFragments) as? Dictionary<String,Any>
             for item in friendRequestStr {
                 let tmpItem = (item as! NSDictionary)
-                let itemName = tmpItem["name"] as! String
+                let itemName = tmpItem[TAG_NAME] as! String
                 let itemFromAddress = tmpItem[TAG_FROM_ADDRESS] as! String
                 let itemRequest = tmpItem[TAG_REQUEST] as! String
                 let itemRequestData = (itemRequest as! String).data(using: .utf8)!
@@ -440,12 +455,12 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
                 
                 let friendRequestKey = requestObj![TAG_FRIEND_REQUEST_SYMMETRIC_KEY] as! String
                 
-                let decryptedFriendRequestKey = CryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: friendRequestKey as NSString)!
+                let decryptedFriendRequestKey = cryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: friendRequestKey as NSString)!
                 setSymmetricKey(account: itemFromAddress, aesKey: decryptedFriendRequestKey as String)
                 let allFriendsKey = requestObj![TAG_ALL_FRIENDS_SYMMETRIC_KEY] as! String
-                let decryptedAllFriendsKey = CryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: allFriendsKey as NSString)!
+                let decryptedAllFriendsKey = cryptoManager.decryptStrWithPrivateKeyTag(keyTag: (PRIVATE_KEY_TAG as NSString), inputBase64Encoded: allFriendsKey as NSString)!
                 _ = setAllFriendsKey(account: itemFromAddress, aesKey: decryptedAllFriendsKey as String)
-                let decryptedName = CryptoManager.decryptStringWithSymmetricKey(key: decryptedAllFriendsKey, base64Input: itemName as NSString)
+                let decryptedName = cryptoManager.decryptStringWithSymmetricKey(key: decryptedAllFriendsKey, base64Input: itemName as NSString)
                 _ = setDecryptedNick(account: itemFromAddress, nickName: decryptedName as! String)
                 // print(decryptedName)
             }
@@ -489,8 +504,9 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         let timeInterval = NSDate().timeIntervalSince1970
         let timeStr = String(format: "%.0f", timeInterval)
         requestStr += "&" + TAG_TIME_STAMP + "=" + timeStr
-
-        let sign = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
+        
+        let cryptoManager = CryptoManager.sharedInstance()
+        let sign = cryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
         // print(sign!);
         requestStr += "&" + TAG_B64_ENCODED_SIGNATURE + "=" + (sign! as String)
 
@@ -514,7 +530,8 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         let timeStr = String(format: "%.0f", timeInterval)
         requestStr += "&" + TAG_TIME_STAMP + "=" + timeStr
 
-        let sign = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
+        let cryptoManager = CryptoManager.sharedInstance()
+        let sign = cryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: true)
         requestStr += "&" + TAG_B64_ENCODED_SIGNATURE + "=" + (sign! as String)
         
         let data = sendGETRequest(urlString:(BASEURL + REQUEST_INVITE_API + requestStr + "/"))
@@ -530,8 +547,8 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
         do {
             let jsonObject = try JSONSerialization.jsonObject(with: data!, options : .allowFragments) as? Dictionary<String,Any>
             let encryptedGroupKey = (jsonObject![TAG_GROUP_KEY])!
-            let allFriendKey = getPasswordForAllFriends()
-            let groupKey = CryptoManager.decryptStringWithSymmetricKey(key: allFriendKey!, base64Input: encryptedGroupKey as! NSString)
+            let allFriendKey = getSharedKeyForAllFriends()
+            let groupKey = cryptoManager.decryptStringWithSymmetricKey(key: allFriendKey!, base64Input: encryptedGroupKey as! NSString)
             
             return setGroupKey(group: groupAddress as String, aesKey: groupKey! as String)
         } catch let error as NSError{
@@ -578,8 +595,9 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
     @objc public func createGroupChat(groupAddress: NSString, inviteeArray:NSArray) -> Bool {
         let timeInterval = NSDate().timeIntervalSince1970
         let timeStr = String(format: "%.0f", timeInterval)
-        // let signedStr = "abc"
-        let signedStr = CryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: false)
+        
+        let cryptoManager = CryptoManager.sharedInstance()
+        let signedStr = cryptoManager.signStrWithPrivateKey(input: (timeStr as NSString), urlEncode: false)
         
         let gethAccount = getAccount()
 
@@ -598,7 +616,7 @@ let TAG_GROUP_INVITEE_LIST = "group_invitee_list"
             if (sharedKey.length == 0) {
                 continue
             }
-            let encryptedGroupKey = CryptoManager.encryptStringWithSymmetricKey(key: sharedKey, input: groupKey!)
+            let encryptedGroupKey = cryptoManager.encryptStringWithSymmetricKey(key: sharedKey, input: groupKey!)
             groupInviteesDict.setValue(encryptedGroupKey, forKey: inviteeAddress)
         }
         let jsonString = dictionaryToString(dict: groupInviteesDict)!
